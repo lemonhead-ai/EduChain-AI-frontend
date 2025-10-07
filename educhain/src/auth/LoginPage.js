@@ -38,6 +38,9 @@ function SignupForm({ showToast }) {
       .catch(() => setSchoolsLoading(false));
   }, []);
 
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setLocalMessage({ message: '', type: '' });
@@ -55,7 +58,7 @@ function SignupForm({ showToast }) {
     }
     setIsProcessing(true);
     try {
-      await signupUser({
+      const signupRes = await signupUser({
         first_name: firstName,
         last_name: lastName,
         email,
@@ -63,8 +66,25 @@ function SignupForm({ showToast }) {
         role,
         ...(phoneNumber && { phone_number: phoneNumber }),
         ...(role === 'TEACHER' && { school: schoolId }),
-      }); // POST /users/signup/
-      setLocalMessage({ message: 'Account created! Please log in.', type: 'success' });
+      });
+
+      // Automatically log in the user after signup
+      const userProfile = await login(email, password);
+
+      // Redirect logic after login
+      if (userProfile.role === 'HEADTEACHER' && !userProfile.school) {
+        navigate('/register-school', { replace: true });
+        return;
+      }
+
+      // Redirect to dashboard based on role
+      if (userProfile.role) {
+        navigate(`/dashboard/${userProfile.role.toLowerCase()}`, { replace: true });
+      } else {
+        navigate('/onboarding', { replace: true });
+      }
+
+      setLocalMessage({ message: 'Account created! Redirecting...', type: 'success' });
       setFirstName(''); setLastName(''); setEmail(''); setPhoneNumber(''); setRole(''); setPassword(''); setConfirmPassword(''); setSchoolId('');
     } catch (err) {
       const apiError = err.response?.data?.email?.[0] ||

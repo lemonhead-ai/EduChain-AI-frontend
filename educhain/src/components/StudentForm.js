@@ -24,7 +24,7 @@ const initialState = {
   parents: []
 };
 
-const emptyParent = { name: '', email: '', phone: '', relation_type: '' };
+const emptyParent = { first_name: '', last_name: '', email: '', phone: '', relation_type: '' };
 
 const StudentForm = ({ studentId, onSuccess, onCancel }) => {
   const [form, setForm] = useState(initialState);
@@ -63,7 +63,7 @@ const StudentForm = ({ studentId, onSuccess, onCancel }) => {
   };
 
   const addParent = () => {
-    if (!parentForm.name || !parentForm.email || !parentForm.relation_type) return;
+    if (!parentForm.first_name || !parentForm.last_name || !parentForm.email || !parentForm.relation_type) return;
     setForm(f => ({
       ...f,
       parents: [...f.parents, parentForm]
@@ -170,7 +170,7 @@ const StudentForm = ({ studentId, onSuccess, onCancel }) => {
           <ul>
             {form.parents.map((p, idx) => (
               <li key={idx}>
-                {p.name} ({p.relation_type}) - {p.email}
+                {p.first_name} {p.last_name} ({p.relation_type}) - {p.email}
                 <button type="button" className="button" style={{marginLeft: 8}} onClick={() => removeParent(idx)}>Remove</button>
               </li>
             ))}
@@ -192,8 +192,12 @@ const StudentForm = ({ studentId, onSuccess, onCancel }) => {
           <div className="card" style={{maxWidth: 400, padding: 20}}>
             <h4>Add Parent</h4>
             <div className="input-group">
-              <label>Name</label>
-              <input name="name" value={parentForm.name} onChange={handleParentChange} required />
+              <label>First Name</label>
+              <input name="first_name" value={parentForm.first_name} onChange={handleParentChange} required />
+            </div>
+            <div className="input-group">
+              <label>Last Name</label>
+              <input name="last_name" value={parentForm.last_name} onChange={handleParentChange} required />
             </div>
             <div className="input-group">
               <label>Email</label>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const SUBCOUNTIES = [
   "Westlands", "Langata", "Embakasi East", "Embakasi West", "Embakasi South",
@@ -10,6 +11,7 @@ const SUBCOUNTIES = [
 
 const RegisterSchoolPage = () => {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
     code: '',
@@ -61,6 +63,10 @@ const RegisterSchoolPage = () => {
       setSuccess('School registered successfully!');
       // Update user context with new school
       updateUser({ school: res.data });
+      // Redirect to dashboard after success
+      setTimeout(() => {
+        navigate('/dashboard/headteacher', { replace: true });
+      }, 1200);
     } catch (err) {
       setError(err.response?.data?.detail || err.response?.data?.code || err.message);
     } finally {
