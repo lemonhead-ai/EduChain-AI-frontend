@@ -1,5 +1,8 @@
 /* Global Styles for EduChain AI App */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 :root {
   --color-primary: #1E90FF; /* Dodger Blue */

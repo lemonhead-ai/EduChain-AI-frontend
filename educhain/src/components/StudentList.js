@@ -1,16 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { fetchStudents } from '../api/students';
+import { fetchStudents, deleteStudent } from '../api/students';
 
-const StudentList = ({ onSelect, canEdit }) => {
+const StudentList = ({ onSelect, canEdit, onRefresh }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+
+  const loadStudents = async () => {
+    try {
+      const data = await fetchStudents();
+      setStudents(data);
+    } catch (error) {
+      console.error('Failed to load students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchStudents().then(data => {
-      setStudents(data);
-      setLoading(false);
-    });
+    loadStudents();
   }, []);
+
+  const handleDelete = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(studentId);
+    try {
+      await deleteStudent(studentId);
+      setStudents(students.filter(s => s.id !== studentId));
+      onRefresh && onRefresh();
+    } catch (error) {
+      alert('Failed to delete student. Please try again.');
+      console.error('Delete error:', error);
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const calculateAge = (dateOfBirth) => {
     const dob = new Date(dateOfBirth);
@@ -55,8 +82,22 @@ const StudentList = ({ onSelect, canEdit }) => {
                 ))}
               </td>
               <td>
-                <button className="button" onClick={() => onSelect(s.id)}>View</button>
-                {canEdit && <button className="button" onClick={() => onSelect(s.id, true)}>Edit</button>}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="button" onClick={() => onSelect(s.id)}>View</button>
+                  {canEdit && (
+                    <>
+                      <button className="button" onClick={() => onSelect(s.id, true)}>Edit</button>
+                      <button 
+                        className="button" 
+                        style={{ backgroundColor: 'var(--color-danger)', color: 'white' }}
+                        onClick={() => handleDelete(s.id, `${s.first_name} ${s.last_name}`)}
+                        disabled={deleting === s.id}
+                      >
+                        {deleting === s.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

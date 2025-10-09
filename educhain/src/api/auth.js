@@ -1,4 +1,5 @@
 import axiosInstance from './axiosInstance';
+import axios from 'axios';
 
 /**
  * Handles user login with email and password.
@@ -47,9 +48,27 @@ export async function fetchUserProfile() {
 }
 
 /**
- * Completes the user onboarding process (sets role, school, etc.).
- * Endpoint: POST /users/auth/onboarding/
+ * Refreshes the access token using the refresh token.
+ * Endpoint: POST /users/token/refresh/
  */
+export async function refreshAccessToken() {
+  try {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    // Create a new axios instance without interceptors to avoid infinite loops
+    const response = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/users/token/refresh/`, {
+      refresh: refreshToken
+    });
+    
+    return response.data; // Expected: { access: "new_access_token" }
+  } catch (error) {
+    console.error('Token refresh failed:', error.response?.data || error.message);
+    throw error;
+  }
+}
 export async function completeOnboarding(role, schoolCode, extraDetails) {
   try {
     const response = await axiosInstance.post(`/users/auth/onboarding/`, { 

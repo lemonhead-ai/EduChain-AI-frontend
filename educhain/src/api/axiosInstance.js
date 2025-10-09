@@ -27,17 +27,80 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response Interceptor: Optional handling for 401/403 errors (e.g., token expired)
+// Flag to prevent multiple refresh attempts
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
+// Response Interceptor: Handle token refresh on 401 errors
 axiosInstance.interceptors.response.use(
     (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            console.error("Authentication expired or failed. Redirecting to login.");
-            // Optional: You could trigger an automatic logout here
-            // localStorage.removeItem('access_token');
-            // localStorage.removeItem('refresh_token');
-            // window.location.href = '/login'; 
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                // If already refreshing, queue this request
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                    return axiosInstance(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) {
+                    throw new Error('No refresh token available');
+                }
+
+                // Refresh the token
+                const response = await axios.post(`${API_URL}/users/token/refresh/`, {
+                    refresh: refreshToken
+                });
+
+                const { access } = response.data;
+                localStorage.setItem('access_token', access);
+
+                // Update the original request with new token
+                originalRequest.headers['Authorization'] = 'Bearer ' + access;
+
+                // Process queued requests
+                processQueue(null, access);
+
+                // Retry the original request
+                return axiosInstance(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed, logout user
+                processQueue(refreshError, null);
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                
+                // Redirect to login
+                window.location.href = '/login';
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
         }
+
         return Promise.reject(error);
     }
 );
